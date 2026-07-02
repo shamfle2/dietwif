@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
+  <meta name="theme-color" content="#1a7a5a" />
+  <meta name="description" content="Recomposición corporal - Plan de nutrición y entrenamiento" />
+  <title>Recomposición Corporal · Mayra</title>
+  
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="https://via.placeholder.com/192/1a7a5a/fff?text=MC" />
+  
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+  
+  <style>
+    /* ===== CSS Variables / Modo oscuro ===== */
+    :root {
+      --bg: #f7f9fc;
+      --bg-card: #ffffff;
+      --text: #1e2a3a;
+      --text-secondary: #4a5a6e;
+      --primary: #1a7a5a;
+      --primary-light: #e8f5ee;
+      --border: #dce3ed;
+      --shadow: 0 8px 24px rgba(0,0,0,0.06);
+      --radius: 18px;
+      --transition: 0.3s ease;
+    }
+    [data-theme="dark"] {
+      --bg: #12181f;
+      --bg-card: #1e2936;
+      --text: #eef2f7;
+      --text-secondary: #b0c4d9;
+      --primary: #2ecc8a;
+      --primary-light: #1e3a2e;
+      --border: #2d3f50;
+      --shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      transition: background var(--transition), color var(--transition);
+      padding: 16px 16px 100px;
+      min-height: 100vh;
+    }
+    .container { max-width: 1200px; margin: 0 auto; }
+    
+    /* ===== Scrollbar ===== */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 10px; }
+
+    /* ===== Header ===== */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0 20px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .header h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .header h1 i { color: var(--primary); }
+    .header-actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+    .theme-toggle, .pwa-install-btn {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 40px;
+      padding: 10px 16px;
+      color: var(--text);
+      cursor: pointer;
+      font-size: 1rem;
+      transition: all var(--transition);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 500;
+    }
+    .theme-toggle:hover, .pwa-install-btn:hover {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+    .pwa-install-btn { display: none; }
+    .pwa-install-btn.show { display: flex; }
+
+    /* ===== Cards ===== */
+    .card {
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 20px 18px;
+      margin-bottom: 20px;
+      transition: background var(--transition), box-shadow var(--transition);
+      border: 1px solid var(--border);
+    }
+    .card-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .card-title i { color: var(--primary); width: 22px; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; }
+    @media (max-width: 700px) { .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; } }
+    @media (min-width: 701px) and (max-width: 1000px) { .grid-3 { grid-template-columns: 1fr 1fr; } }
+
+    .stat-number {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--primary);
+      line-height: 1.2;
+    }
+    .stat-label {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .stat-row:last-child { border-bottom: none; }
+
+    /* ===== Progress bar ===== */
+    .progress-bar {
+      width: 100%;
+      height: 10px;
+      background: var(--border);
+      border-radius: 20px;
+      overflow: hidden;
+      margin: 6px 0;
+    }
+    .progress-fill {
+      height: 100%;
+      background: var(--primary);
+      border-radius: 20px;
+      transition: width 0.6s ease;
+    }
+
+    /* ===== Botones ===== */
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 40px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 1rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-primary:hover { opacity: 0.85; transform: scale(0.97); }
+    .btn-outline {
+      background: transparent;
+      border: 2px solid var(--primary);
+      color: var(--primary);
+      padding: 10px 20px;
+      border-radius: 40px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-outline:hover { background: var(--primary); color: #fff; }
+
+    /* ===== Tabs ===== */
+    .tabs {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 10px;
+    }
+    .tab {
+      padding: 8px 16px;
+      border-radius: 40px;
+      cursor: pointer;
+      font-weight: 500;
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      transition: all 0.2s;
+    }
+    .tab.active {
+      background: var(--primary);
+      color: #fff;
+    }
+    .tab:hover:not(.active) { background: var(--border); }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* ===== Comidas ===== */
+    .meal-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    @media (max-width: 600px) { .meal-grid { grid-template-columns: 1fr; } }
+    .meal-item {
+      background: var(--bg);
+      padding: 12px 14px;
+      border-radius: 12px;
+      border-left: 4px solid var(--primary);
+    }
+    .meal-item strong { display: block; font-size: 0.9rem; color: var(--primary); }
+    .meal-item .food { font-size: 0.9rem; color: var(--text-secondary); }
+
+    /* ===== Supermarket list ===== */
+    .super-list { display: flex; flex-wrap: wrap; gap: 8px; }
+    .super-tag {
+      background: var(--primary-light);
+      color: var(--primary);
+      padding: 6px 14px;
+      border-radius: 30px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      border: 1px solid var(--border);
+    }
+
+    /* ===== Checklist ===== */
+    .checklist-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .checklist-item input[type="checkbox"] {
+      width: 22px;
+      height: 22px;
+      accent-color: var(--primary);
+      cursor: pointer;
+    }
+    .checklist-item label { flex: 1; cursor: pointer; font-weight: 500; }
+    .checklist-item .done { text-decoration: line-through; opacity: 0.5; }
+
+    /* ===== Logros ===== */
+    .achievement {
+      display: inline-block;
+      background: #f1c40f20;
+      border: 1px solid #f1c40f;
+      border-radius: 30px;
+      padding: 6px 16px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #f1c40f;
+      margin: 4px;
+    }
+    .achievement.unlocked { background: #2ecc7120; border-color: #2ecc71; color: #2ecc71; }
+
+    /* ===== Calendario ===== */
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7,1fr);
+      gap: 6px;
+      text-align: center;
+    }
+    .cal-day {
+      padding: 8px 4px;
+      border-radius: 10px;
+      background: var(--bg);
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: 0.2s;
+      border: 1px solid transparent;
+    }
+    .cal-day.workout { border-color: var(--primary); background: var(--primary-light); }
+    .cal-day.today { border-color: var(--primary); font-weight: 700; }
+    .cal-day:hover { background: var(--primary); color: #fff; }
+
+    /* ===== Responsive ===== */
+    @media (max-width: 480px) {
+      .header h1 { font-size: 1.2rem; }
+      .stat-number { font-size: 1.5rem; }
+      .card { padding: 14px; }
+    }
+  </style>
+</head>
+<body>
+<div class="container" id="app">
+
+  <!-- HEADER -->
+  <header class="header">
+    <h1><i class="fas fa-heartbeat"></i> Recomp·Mayra</h1>
+    <div class="header-actions">
+      <button class="theme-toggle" id="themeToggle" aria-label="Cambiar tema">
+        <i class="fas fa-moon"></i> <span id="themeLabel">Modo oscuro</span>
+      </button>
+      <button class="pwa-install-btn" id="installBtn"><i class="fas fa-download"></i> Instalar app</button>
+    </div>
+  </header>
+
+  <!-- ===== INICIO ===== -->
+  <section id="seccion-inicio">
+    <div class="card">
+      <div class="card-title"><i class="fas fa-user-circle"></i> Resumen de salud · Mayra Isabel</div>
+      <div class="grid-4">
+        <div><span class="stat-label">Edad</span><div class="stat-number">34</div></div>
+        <div><span class="stat-label">Estatura</span><div class="stat-number">1.48 m</div></div>
+        <div><span class="stat-label">Peso actual</span><div class="stat-number" id="pesoMostrado">47.1 kg</div></div>
+        <div><span class="stat-label">IMC</span><div class="stat-number">23.8 <span style="font-size:0.8rem;color:var(--text-secondary);">(saludable)</span></div></div>
+      </div>
+      <div class="grid-2" style="margin-top:12px;">
+        <div><span class="stat-label">Gasto energético</span><div class="stat-number">1,600 kcal</div></div>
+        <div><span class="stat-label">Agua diaria</span><div class="stat-number">1.56 L <span style="font-size:0.9rem;">(6.5 vasos)</span></div></div>
+      </div>
+      <div style="margin-top:14px; padding:12px; background:var(--primary-light); border-radius:12px;">
+        <strong><i class="fas fa-bullseye" style="color:var(--primary);"></i> Objetivo: recomposición corporal</strong>
+        <p style="margin-top:6px; font-size:0.95rem; color:var(--text-secondary);">
+          Disminuir grasa · Aumentar músculo · Fortalecer piernas y glúteos · Mejorar fuerza y postura
+        </p>
+      </div>
+    </div>
+
+    <!-- InBody resumen -->
+    <div class="card">
+      <div class="card-title"><i class="fas fa-chart-pie"></i> Análisis InBody</div>
+      <div class="grid-3">
+        <div><span class="stat-label">Músculo piernas</span><div class="stat-number" style="font-size:1.6rem;">↓ <span style="color:#e74c3c;">-8%</span></div><span style="color:var(--text-secondary);">por debajo ideal</span></div>
+        <div><span class="stat-label">% Grasa corporal</span><div class="stat-number" style="font-size:1.6rem;">39.9%</div><span style="color:var(--text-secondary);">(elevado para su peso)</span></div>
+        <div><span class="stat-label">Metabolismo basal</span><div class="stat-number" style="font-size:1.6rem;">1,046 kcal</div><span style="color:var(--text-secondary);">evitar dietas restrictivas</span></div>
+      </div>
+      <div style="margin-top:12px;">
+        <span class="stat-label">Puntuación InBody</span>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <span class="stat-number" style="font-size:1.8rem;">65</span>
+          <span style="color:var(--text-secondary);">/ 100</span>
+          <div class="progress-bar" style="flex:1;"><div class="progress-fill" style="width:65%;"></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== PANEL DE PROGRESO ===== -->
+  <section id="seccion-progreso">
+    <div class="card">
+      <div class="card-title"><i class="fas fa-chart-line"></i> Progreso actual</div>
+      <div class="grid-3">
+        <div><span class="stat-label">Peso objetivo</span><div class="stat-number">47.1 kg</div><span style="color:var(--text-secondary);">✓ en rango</span></div>
+        <div><span class="stat-label">Grasa a perder</span><div class="stat-number" style="color:#e67e22;">-10 kg</div></div>
+        <div><span class="stat-label">Músculo a ganar</span><div class="stat-number" style="color:#2ecc71;">+5 kg</div></div>
+      </div>
+      <div style="margin-top:10px;">
+        <div><span class="stat-label">Control de peso</span><div class="progress-bar"><div class="progress-fill" style="width:70%;"></div></div></div>
+        <div><span class="stat-label">Control de grasa</span><div class="progress-bar"><div class="progress-fill" style="width:40%;"></div></div></div>
+        <div><span class="stat-label">Control de músculo</span><div class="progress-bar"><div class="progress-fill" style="width:30%;"></div></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== CALCULADORAS ===== -->
+  <section id="seccion-calculadoras">
+    <div class="card">
+      <div class="card-title"><i class="fas fa-calculator"></i> Calculadora IMC</div>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:end;">
+        <div><label>Peso (kg)</label><input type="number" id="calcPeso" value="47.1" step="0.1" style="padding:10px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text);width:100px;"></div>
+        <div><label>Altura (m)</label><input type="number" id="calcAltura" value="1.48" step="0.01" style="padding:10px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text);width:100px;"></div>
+        <button class="btn-primary" id="calcIMCbtn">Calcular IMC</button>
+        <div style="margin-left:10px;"><span class="stat-label">IMC</span><div class="stat-number" id="resultadoIMC">23.8</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><i class="fas fa-fire"></i> Calorías</div>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:end;">
+        <div><label>Edad</label><input type="number" id="calEdad" value="34" style="padding:10px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text);width:80px;"></div>
+        <div><label>Peso (kg)</label><input type="number" id="calPeso" value="47.1" step="0.1" style="padding:10px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text);width:100px;"></div>
+        <div><label>Altura (cm)</label><input type="number" id="calAltura" value="148" style="padding:10px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text);width:100px;"></div>
+        <button class="btn-primary" id="calcCaloriasBtn">Calcular TMB</button>
+        <div><span class="stat-label">TMB</span><div class="stat-number" id="resultadoTMB">1046 kcal</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== AGUA ===== -->
+  <section id="seccion-agua">
+    <div class="card">
+      <div class="card-title"><i class="fas fa-tint"></i> Recordatorio de agua <span style="font-size:0.9rem;font-weight:400;color:var(--text-secondary);">(1.56 L / día)</span></div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+        <span id="vasosDisplay">0</span> / 6.5 vasos
+        <button class="btn-outline" id="addVaso" style="padding:6px 16px;"><i class="fas fa-plus"></i> Vaso</button>
+        <button class="btn-outline" id="resetAgua" style="padding:6px 16px;"><i class="fas fa-redo"></i> Reiniciar</button>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="aguaProgress" style="width:0%;"></div></div>
+    </div>
+  </section>
+
+  <!-- ===== ALIMENTACIÓN ===== -->
+  <section id="seccion-alimentacion">
+    <div class="card">
+      <div class="card-title"><i class="fas fa-utensils"></i> Plan semanal · 1600 kcal <span style="font-size:0.8rem;font-weight:400;color:var(--text-secondary);">(sin huevo, más proteína y verduras)</span></div>
+      
+      <div class="tabs" id="mealTabs">
+        <button class="tab active" data-day="lunes">Lunes</button>
+        <button class="tab" data-day="martes">Martes</button>
+        <button class="tab" data-day="miercoles">Miércoles</button>
+        <button class="tab" data-day="jueves">Jueves</button>
+        <button class="tab" data-day="viernes">Viernes</button>
+        <button class="tab" data-day="sabado">Sábado</button>
+        <button class="tab" data-day="domingo">Domingo</button>
+      </div>
+
+      <div id="mealContent">
+        <!-- Cada día se carga desde JS -->
+      </div>
+    </div>
+
+    <!-- Lista supermercado -->
+    <div class="card">
+      <div class="card-title"><i class="fas fa-shopping-cart"></i> Lista del supermercado</div>
+      <div class="super-list" id="superList"></div>
+      <button class="btn-outline" id="generarSuper" style="margin-top:12px;"><i class="fas fa-sync"></i> Generar lista</button>
+    </div>
+
+    <!-- Recetas -->
+    <div class="card">
+      <div class="card-title"><i class="fas fa-book-open"></i> Recetas destacadas</div>
+      <div class="grid-2" id="recetasContainer">
+        <!-- se llena desde JS -->
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== RUTINAS ===== -->
+  <section id="seccion-rutinas">
+    <div class="card">
+      <div class="card-title"><i class="fas fa-dumbbell"></i> Rutinas de fuerza (12 semanas)</div>
+      <div class="grid-2" id="rutinasContainer">
+        <div><strong>Lunes · Pierna/Glúteo</strong><br>Sentadilla búlgara, peso muerto rumano, zancadas, patada en polea, gemelos.</div>
+        <div><strong>Martes · Espalda/Bíceps</strong><br>Remo, jalón al pecho, curl de bíceps, dominadas asistidas.</div>
+        <div><strong>Miércoles · Cardio HIIT</strong><br>Brincolín 30s/15s x 10, elíptica 20 min intensidad alta.</div>
+        <div><strong>Jueves · Pecho/Hombro/Tríceps</strong><br>Press inclinado, aperturas, press militar, fondos, extensión de tríceps.</div>
+        <div><strong>Viernes · Pierna/Glúteo/Pantorrilla</strong><br>Hip thrust, sentadilla sumo, peso muerto, elevación de talones.</div>
+        <div><strong>Sábado · Full Body</strong><br>Circuito: sentadilla, remo, press, plancha, zancadas, abdominales.</div>
+        <div style="grid-column:1/-1;"><strong>Domingo · Movilidad y estiramientos</strong><br>Rutina de 20 min de estiramientos dinámicos y estáticos, caminata ligera 30 min.</div>
+      </div>
+      <div style="margin-top:14px;background:var(--primary-light);padding:12px;border-radius:12px;">
+        <strong><i class="fas fa-clock"></i> Progresión semanal:</strong> Aumentar 5-10% de carga o repeticiones cada semana. Descanso 60-90s entre series.
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><i class="fas fa-heart"></i> Cardio en elíptica y brincolín</div>
+      <div class="grid-2">
+        <div><strong>Elíptica</strong><br>Semana 1: 20 min · Semana 4: 30 min · Semana 8: 40 min · Semana 12: 45 min (intervalos).</div>
+        <div><strong>Brincolín</strong><br>Semana 1: 10x(30s/30s) · Semana 6: 15x(30s/15s) · Semana 12: 20x(40s/20s).</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== GRÁFICAS ===== -->
+  <section id="seccion-graficas">
+    <div class="card">
+      <div class="card-title"><i class="fas fa-chart-bar"></i> Evolución (simulada)</div>
+      <canvas id="graficoPeso" height="180"></canvas>
+      <div style="display:flex;gap:20px;flex-wrap:wrap;margin-top:12px;">
+        <canvas id="graficoGrasa" height="140" style="flex:1;min-width:200px;"></canvas>
+        <canvas id="graficoMusculo" height="140" style="flex:1;min-width:200px;"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== CALENDARIO ===== -->
+  <section id="seccion-calendario">
+    <div class="card">
+      <div class="card-title"><i class="fas fa-calendar-alt"></i> Calendario de entrenamientos</div>
+      <div id="calendarContainer"></div>
+      <p style="font-size:0.8rem;color:var(--text-secondary);margin-top:10px;">Haz clic en un día para marcar/desmarcar entrenamiento.</p>
+    </div>
+  </section>
+
+  <!-- ===== CHECKLIST ===== -->
+  <section id="seccion-checklist">
+    <div class="card">
+      <div class="card-title"><i class="fas fa-check-circle"></i> Checklist diario</div>
+      <div id="checklistContainer">
+        <div class="checklist-item"><input type="checkbox" id="chkAgua"><label for="chkAgua">💧 1.56 L de agua</label></div>
+        <div class="checklist-item"><input type="checkbox" id="chkEjercicio"><label for="chkEjercicio">🏋️ Ejercicio (30+ min)</label></div>
+        <div class="checklist-item"><input type="checkbox" id="chkComidas"><label for="chkComidas">🍽️ Seguí el plan de comidas</label></div>
+        <div class="checklist-item"><input type="checkbox" id="chkSueño"><label for="chkSueño">😴 7-8 horas de sueño</label></div>
+      </div>
+      <button class="btn-primary" id="resetChecklist" style="margin-top:10px;"><i class="fas fa-redo"></i> Reiniciar hoy</button>
+    </div>
+  </section>
+
+  <!-- ===== LOGROS ===== -->
+  <section id="seccion-logros">
+    <div class="card">
+      <div class="card-title"><i class="fas fa-trophy"></i> Logros</div>
+      <div id="logrosContainer">
+        <span class="achievement unlocked"><i class="fas fa-check"></i> Primer paso</span>
+        <span class="achievement"><i class="fas fa-lock"></i> 5 días de ejercicio</span>
+        <span class="achievement"><i class="fas fa-lock"></i> -1 kg de grasa</span>
+        <span class="achievement"><i class="fas fa-lock"></i> +1 kg músculo</span>
+        <span class="achievement"><i class="fas fa-lock"></i> 30 días consecutivos</span>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+  // ============================================================
+  //  DATOS
+  // ============================================================
+  const planComidas = {
+    lunes: {
+      desayuno: 'Pollo deshebrado con ejotes (60g pollo, ½ tza ejotes, 2 tortillas, ⅓ aguacate, 1 fruta)',
+      colacion1: 'Yogurt con melón (¼ tza yogurt, 1 tza melón, 1 manzana, 6 nueces)',
+      comida: 'Rajas con crema (poblano, 2 reb mozzarella, ½ tza pollo, ½ tza elote, ¼ tza arroz, 4 cdas crema light)',
+      colacion2: '1 tza de fruta',
+      cena: 'Quesadillas (2 tortillas, 2 reb mozzarella 0%) + ensalada de nopal (1 tza nopal, tomate, cebolla, chile, ⅓ aguacate)'
+    },
+    martes: {
+      desayuno: 'Pan tostado con queso panela (2 reb pan integral, 2 reb queso panela, ½ tza salsa, ⅓ aguacate, 1 tza fruta)',
+      colacion1: 'Licuado de plátano (1 tza leche, 1 plátano)',
+      comida: 'Ensalada de atún (1 lata atún, 2 tzas verduras, 3 tostadas horneadas, 1 cdta mayo, ⅓ aguacate)',
+      colacion2: '20 almendras + 1 fruta',
+      cena: 'Sándwich (2 reb pan integral, 30g pollo, 40g queso panela, lechuga, tomate, ⅓ aguacate)'
+    },
+    miercoles: {
+      desayuno: 'Salchicha de pavo con verdura (2 salchichas, 1 cdta aceite oliva, 2 tortillas, 1 tza jitomate/cebolla/chile, ⅓ aguacate, 1 fruta)',
+      colacion1: 'Licuado de fruta (1 tza leche, 1 tza fruta, 3 nueces)',
+      comida: 'Pollo a la plancha (90g pechuga, 2 nopales asados, 1 tza salsa, 3 tortillas, ½ aguacate)',
+      colacion2: '10 almendras + 1 pera',
+      cena: 'Ensalada con pollo (60g pollo, ½ tza verduras, 1 cda mayo, 6 galletas maíz horneadas)'
+    },
+    jueves: {
+      desayuno: 'Sándwich de queso (1 reb pan integral, 70g queso blanco, ⅓ aguacate, lechuga/jitomate/cebolla, 1 tza fruta)',
+      colacion1: '10 almendras + 1 fruta',
+      comida: 'Tostadas de pollo (3 tostadas horneadas, 90g pollo, 1 tza lechuga/cebolla/zanahoria, ⅓ aguacate, 1 cda crema)',
+      colacion2: 'Yogurt con frutos (½ tza yogurt, 3 nueces, 1½ tza fruta)',
+      cena: 'Tacos de carne asada (2 tortillas, 70g res, salsa, 3 cebollitas, 2 cdas guacamole)'
+    },
+    viernes: {
+      desayuno: 'Machaca con verdura (140g machaca, 1 tza jitomate/cebolla/chile, 1 cdta aceite, 2 tortillas, 1 fruta)',
+      colacion1: 'Licuado de fruta (1 tza leche, 1 tza fruta, 3 nueces)',
+      comida: 'Albóndigas (90g carne molida, 1 tza verdura, ¼ tza arroz, 2 tortillas, ½ aguacate)',
+      colacion2: '10 almendras + 1 pera',
+      cena: 'Pan tostado con queso cottage (2 reb pan integral, 6 cdas cottage, ½ tza salsa, ⅓ aguacate)'
+    },
+    sabado: {
+      desayuno: 'Tostadas de atún (2 tostadas horneadas, 1 lata atún, ½ tza verduras, ⅓ aguacate, 1 fruta)',
+      colacion1: '1 tza de fruta + 6 nueces',
+      comida: 'Pescado a la plancha (90g filete, 2 tzas verduras asadas, 3 tortillas, ½ aguacate)',
+      colacion2: 'Yogurt con granola (½ tza yogurt, 2 cdas granola, ½ tza fruta)',
+      cena: 'Ensalada de lentejas (1 tza lentejas cocidas, verduras al gusto, 1 cdta aceite oliva, ⅓ aguacate)'
+    },
+    domingo: {
+      desayuno: 'Hot cakes de avena (¾ pieza, 1 tza fruta, 1 cda miel)',
+      colacion1: 'Licuado de proteína (1 tza leche, 1 scoop proteína, ½ plátano)',
+      comida: 'Pollo al horno con verduras (120g muslo sin piel, 2 tzas verduras mixtas, 1 papa mediana)',
+      colacion2: '10 almendras + 1 manzana',
+      cena: 'Sopa de verduras con garbanzos (1 tza caldo, ½ tza garbanzos, verduras variadas, ⅓ aguacate)'
+    }
+  };
+
+  // Recetas
+  const recetas = [
+    { nombre: 'Pollo con ejotes', kcal: '320', protein: '28g', carbs: '22g', fat: '12g', img: '🍗' },
+    { nombre: 'Ensalada de atún', kcal: '290', protein: '24g', carbs: '18g', fat: '10g', img: '🥗' },
+    { nombre: 'Tacos de carne asada', kcal: '340', protein: '26g', carbs: '30g', fat: '14g', img: '🌮' },
+    { nombre: 'Albóndigas con arroz', kcal: '360', protein: '30g', carbs: '28g', fat: '16g', img: '🍲' }
+  ];
+
+  // ============================================================
+  //  RENDER PLAN DE COMIDAS
+  // ============================================================
+  function renderMeals(day) {
+    const data = planComidas[day];
+    if (!data) return;
+    const container = document.getElementById('mealContent');
+    container.innerHTML = `
+      <div class="meal-grid">
+        <div class="meal-item"><strong>Desayuno</strong><span class="food">${data.desayuno}</span></div>
+        <div class="meal-item"><strong>Colación 1</strong><span class="food">${data.colacion1}</span></div>
+        <div class="meal-item"><strong>Comida</strong><span class="food">${data.comida}</span></div>
+        <div class="meal-item"><strong>Colación 2</strong><span class="food">${data.colacion2}</span></div>
+        <div class="meal-item" style="grid-column:1/-1;"><strong>Cena</strong><span class="food">${data.cena}</span></div>
+      </div>
+    `;
+  }
+
+  // Tabs
+  document.querySelectorAll('#mealTabs .tab').forEach(tab => {
+    tab.addEventListener('click', function() {
+      document.querySelectorAll('#mealTabs .tab').forEach(t => t.classList.remove('active'));
+      this.classList.add('active');
+      renderMeals(this.dataset.day);
+    });
+  });
+  renderMeals('lunes');
+
+  // ============================================================
+  //  SUPERMERCADO
+  // ============================================================
+  function generarSuperList() {
+    const items = new Set();
+    for (const day of Object.values(planComidas)) {
+      const text = Object.values(day).join(' ');
+      const palabras = text.split(/\s+/);
+      for (const p of palabras) {
+        if (p.length > 3 && !['con','una','las','los','de','del','al','la','el','y','en','por','para'].includes(p.toLowerCase())) {
+          const limpio = p.replace(/[,;:.]/g,'');
+          if (limpio.length > 2) items.add(limpio);
+        }
+      }
+    }
+    // Filtro manual para quitar números y palabras comunes
+    const filtrados = [...items].filter(w => !/^\d+$/.test(w) && w.length > 2);
+    const lista = ['Pollo', 'Atún', 'Carne de res', 'Pescado', 'Tortillas', 'Pan integral', 'Aguacate', 'Leche', 'Yogurt', 'Queso panela', 'Mozzarella', 'Verduras variadas', 'Frutas', 'Nueces', 'Almendras', 'Lentejas', 'Garbanzos', 'Arroz', 'Aceite de oliva', 'Salsa', 'Crema light', 'Mayonesa light'];
+    const container = document.getElementById('superList');
+    container.innerHTML = lista.map(item => `<span class="super-tag">${item}</span>`).join('');
+  }
+  document.getElementById('generarSuper').addEventListener('click', generarSuperList);
+  generarSuperList();
+
+  // ============================================================
+  //  RECETAS
+  // ============================================================
+  function renderRecetas() {
+    const container = document.getElementById('recetasContainer');
+    container.innerHTML = recetas.map(r => `
+      <div style="background:var(--bg);border-radius:12px;padding:12px;display:flex;align-items:center;gap:14px;border:1px solid var(--border);">
+        <span style="font-size:2.5rem;">${r.img}</span>
+        <div><strong>${r.nombre}</strong><br><span style="font-size:0.8rem;color:var(--text-secondary);">${r.kcal} kcal · P:${r.protein} · C:${r.carbs} · G:${r.fat}</span></div>
+      </div>
+    `).join('');
+  }
+  renderRecetas();
+
+  // ============================================================
+  //  CHECKLIST
+  // ============================================================
+  document.getElementById('resetChecklist').addEventListener('click', function() {
+    document.querySelectorAll('#checklistContainer input[type="checkbox"]').forEach(cb => cb.checked = false);
+  });
+
+  // ============================================================
+  //  AGUA
+  // ============================================================
+  let vasos = 0;
+  const maxVasos = 6.5;
+  function actualizarAgua() {
+    document.getElementById('vasosDisplay').textContent = vasos.toFixed(1);
+    const pct = Math.min(100, (vasos / maxVasos) * 100);
+    document.getElementById('aguaProgress').style.width = pct + '%';
+    if (vasos >= maxVasos) {
+      document.getElementById('vasosDisplay').style.color = '#2ecc71';
+    } else {
+      document.getElementById('vasosDisplay').style.color = '';
+    }
+  }
+  document.getElementById('addVaso').addEventListener('click', function() {
+    if (vasos < maxVasos) { vasos += 0.5; actualizarAgua(); }
+  });
+  document.getElementById('resetAgua').addEventListener('click', function() { vasos = 0; actualizarAgua(); });
+  actualizarAgua();
+
+  // ============================================================
+  //  CALCULADORA IMC
+  // ============================================================
+  document.getElementById('calcIMCbtn').addEventListener('click', function() {
+    const peso = parseFloat(document.getElementById('calcPeso').value);
+    const altura = parseFloat(document.getElementById('calcAltura').value);
+    if (peso > 0 && altura > 0) {
+      const imc = peso / (altura * altura);
+      document.getElementById('resultadoIMC').textContent = imc.toFixed(1);
+    }
+  });
+
+  // ============================================================
+  //  CALCULADORA CALORÍAS (TMB)
+  // ============================================================
+  document.getElementById('calcCaloriasBtn').addEventListener('click', function() {
+    const edad = parseInt(document.getElementById('calEdad').value);
+    const peso = parseFloat(document.getElementById('calPeso').value);
+    const altura = parseInt(document.getElementById('calAltura').value);
+    if (edad > 0 && peso > 0 && altura > 0) {
+      // Fórmula Mifflin-St Jeor (mujer)
+      const tmb = 10 * peso + 6.25 * altura - 5 * edad - 161;
+      document.getElementById('resultadoTMB').textContent = Math.round(tmb) + ' kcal';
+    }
+  });
+
+  // ============================================================
+  //  GRÁFICAS (Chart.js)
+  // ============================================================
+  let chartPeso, chartGrasa, chartMusculo;
+
+  function initCharts() {
+    const ctx1 = document.getElementById('graficoPeso').getContext('2d');
+    chartPeso = new Chart(ctx1, {
+      type: 'line',
+      data: {
+        labels: ['Sem 0', 'Sem 2', 'Sem 4', 'Sem 6', 'Sem 8', 'Sem 10', 'Sem 12'],
+        datasets: [{
+          label: 'Peso (kg)',
+          data: [47.1, 46.8, 46.5, 46.2, 46.0, 45.8, 45.5],
+          borderColor: '#2ecc71',
+          backgroundColor: '#2ecc7120',
+          fill: true,
+          tension: 0.3,
+          pointBackgroundColor: '#2ecc71',
+        }]
+      },
+      options: { responsive: true, plugins: { legend: { display: false } } }
+    });
+
+    const ctx2 = document.getElementById('graficoGrasa').getContext('2d');
+    chartGrasa = new Chart(ctx2, {
+      type: 'line',
+      data: {
+        labels: ['Sem 0', 'Sem 4', 'Sem 8', 'Sem 12'],
+        datasets: [{
+          label: '% Grasa',
+          data: [39.9, 37.5, 34.0, 30.5],
+          borderColor: '#e67e22',
+          backgroundColor: '#e67e2220',
+          fill: true,
+          tension: 0.3,
+        }]
+      },
+      options: { responsive: true, plugins: { legend: { display: false } } }
+    });
+
+    const ctx3 = document.getElementById('graficoMusculo').getContext('2d');
+    chartMusculo = new Chart(ctx3, {
+      type: 'line',
+      data: {
+        labels: ['Sem 0', 'Sem 4', 'Sem 8', 'Sem 12'],
+        datasets: [{
+          label: 'Músculo (kg)',
+          data: [16.4, 17.5, 18.8, 20.0],
+          borderColor: '#3498db',
+          backgroundColor: '#3498db20',
+          fill: true,
+          tension: 0.3,
+        }]
+      },
+      options: { responsive: true, plugins: { legend: { display: false } } }
+    });
+  }
+  initCharts();
+
+  // ============================================================
+  //  CALENDARIO
+  // ============================================================
+  function renderCalendar() {
+    const container = document.getElementById('calendarContainer');
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const today = now.getDate();
+
+    let html = `<div style="font-weight:600;margin-bottom:10px;">${now.toLocaleString('es', { month: 'long', year: 'numeric' })}</div><div class="calendar-grid">`;
+    const diasSemana = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+    for (const d of diasSemana) html += `<div style="font-weight:600;font-size:0.7rem;color:var(--text-secondary);">${d}</div>`;
+
+    for (let i = 0; i < firstDay; i++) html += `<div></div>`;
+
+    for (let d = 1; d <= daysInMonth; d++) {
+      const isToday = d === today;
+      const isWorkout = localStorage.getItem('workout_' + d + '_' + month + '_' + year) === 'true';
+      html += `<div class="cal-day ${isToday?'today':''} ${isWorkout?'workout':''}" data-day="${d}" data-month="${month}" data-year="${year}">${d}</div>`;
+    }
+    html += '</div>';
+    container.innerHTML = html;
+
+    // Evento click en días
+    container.querySelectorAll('.cal-day').forEach(el => {
+      el.addEventListener('click', function() {
+        const d = this.dataset.day;
+        const m = this.dataset.month;
+        const y = this.dataset.year;
+        const key = 'workout_' + d + '_' + m + '_' + y;
+        const current = localStorage.getItem(key) === 'true';
+        localStorage.setItem(key, current ? 'false' : 'true');
+        renderCalendar();
+      });
+    });
+  }
+  renderCalendar();
+
+  // ============================================================
+  //  TEMA OSCURO
+  // ============================================================
+  const themeToggle = document.getElementById('themeToggle');
+  const themeLabel = document.getElementById('themeLabel');
+  let darkMode = localStorage.getItem('theme') === 'dark';
+
+  function setTheme(dark) {
+    document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+    themeLabel.textContent = dark ? 'Modo claro' : 'Modo oscuro';
+    themeToggle.querySelector('i').className = dark ? 'fas fa-sun' : 'fas fa-moon';
+    localStorage.setItem('theme', dark ? 'dark' : 'light');
+  }
+  setTheme(darkMode);
+  themeToggle.addEventListener('click', () => { darkMode = !darkMode; setTheme(darkMode); });
+
+  // ============================================================
+  //  PWA - INSTALACIÓN
+  // ============================================================
+  let deferredPrompt;
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    document.getElementById('installBtn').classList.add('show');
+  });
+
+  document.getElementById('installBtn').addEventListener('click', async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const result = await deferredPrompt.userChoice;
+      if (result.outcome === 'accepted') {
+        document.getElementById('installBtn').classList.remove('show');
+      }
+      deferredPrompt = null;
+    }
+  });
+
+  // ============================================================
+  //  SERVICE WORKER REGISTRO
+  // ============================================================
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js')
+      .then(() => console.log('SW registrado'))
+      .catch(() => console.log('SW no registrado'));
+  }
+
+  console.log('🚀 App de recomposición corporal cargada');
+</script>
+</body>
+</html>
